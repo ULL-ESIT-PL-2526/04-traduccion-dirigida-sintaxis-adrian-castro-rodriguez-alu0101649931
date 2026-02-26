@@ -1,12 +1,13 @@
 /* Lexer */
 %lex
 %%
-\s+                   { /* skip whitespace */; }
-[0-9]+                { return 'NUMBER';       }
-"**"                  { return 'OP';           }
-[-+*/]                { return 'OP';           }
-<<EOF>>               { return 'EOF';          }
-.                     { return 'INVALID';      }
+\s+                                     { /* skip whitespace */; }
+\/\/[^\n]*                              { /* skip comment */;    }
+[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?     { return 'NUMBER';       }
+"**"                                    { return 'OP';           }
+[-+*/]                                  { return 'OP';           }
+<<EOF>>                                 { return 'EOF';          }
+.                                       { return 'INVALID';      }
 /lex
 
 /* Parser */
@@ -15,29 +16,29 @@
 %%
 
 expressions
-    : expression EOF
-        { return $expression; }
-    ;
+  : expression EOF
+    { return $expression; }
+  ;
 
 expression
-    : expression OP term
-        { $$ = operate($OP, $expression, $term); }
-    | term
-        { $$ = $term; }
-    ;
+  : expression OP term
+    { $$ = operate($OP, $expression, $term); }
+  | term
+    { $$ = $term; }
+  ;
 
 term
-    : NUMBER
-        { $$ = Number(yytext); }
-    ;
+  : NUMBER
+    { $$ = Number(yytext); }
+  ;
 %%
 
 function operate(op, left, right) {
-    switch (op) {
-        case '+': return left + right;
-        case '-': return left - right;
-        case '*': return left * right;
-        case '/': return left / right;
-        case '**': return Math.pow(left, right);
-    }
+  switch (op) {
+    case '+': return left + right;
+    case '-': return left - right;
+    case '*': return left * right;
+    case '/': return left / right;
+    case '**': return Math.pow(left, right);
+  }
 }
