@@ -1,6 +1,5 @@
 /**
  * Jest tests for the Jison parser
- * 
  */
 const parse = require("../src/parser.js").parse;
 
