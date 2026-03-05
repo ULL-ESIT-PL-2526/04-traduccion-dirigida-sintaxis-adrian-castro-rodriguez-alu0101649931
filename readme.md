@@ -1,6 +1,6 @@
 # Práctica 5 - Traducción Dirigida Sintaxis
 
-## Partiendo de la gramática y las siguientes frases `4.0-2.0*3.0`, `2**3**2` y `7-4/2`:
+## 1. Partiendo de la gramática y las siguientes frases `4.0-2.0*3.0`, `2**3**2` y `7-4/2`:
 
 ### 1.1 Escriba la derivación para cada una de las frases.
 
@@ -43,13 +43,63 @@ number op number op number
 
 Frase 1: `4.0 - 2.0 * 3.0`
 
-
+```
+L
+├─ E
+│  ├─ E
+│  │  ├─ E
+│  │  │  └─ T
+│  │  │     └─ <NUM,4.0>
+│  │  ├─ OP
+│  │  │  └─ -
+│  │  └─ T
+│  │     └─ <NUM,2.0>
+│  ├─ OP
+│  │  └─ *
+│  └─ T
+│     └─ <NUM,3.0>
+└─ EOF
+```
 
 Frase 2: `2 ** 3 ** 2`
 
-
+```
+L
+├─ E
+│  ├─ E
+│  │  ├─ E
+│  │  │  └─ T
+│  │  │     └─ <NUM,2>
+│  │  ├─ OP
+│  │  │  └─ **
+│  │  └─ T
+│  │     └─ <NUM,3>
+│  ├─ OP
+│  │  └─ **
+│  └─ T
+│     └─ <NUM,2>
+└─ EOF
+```
 
 Frase 3: `7 - 4 / 2`
+
+```
+L
+├─ E
+│  ├─ E
+│  │  ├─ E
+│  │  │  └─ T
+│  │  │     └─ <NUM,7>
+│  │  ├─ OP
+│  │  │  └─ -
+│  │  └─ T
+│  │     └─ <NUM,4>
+│  ├─ OP
+│  │  └─ /
+│  └─ T
+│     └─ <NUM,2>
+└─ EOF
+```
 
 ### 1.3 ¿En qué orden se evaluan las acciones semánticas para cada una de las frases?
 
@@ -58,10 +108,28 @@ Es evaluación bottom-up: se convierten los números, se evalúa la operación m
 ## 2. Modifique la gramática del fichero grammar.jison de manera que se respete la precedencia y la asociatividad de los operadores matemáticos.
 
 ```js
-%token number
-%token opad
-%token opmu
-%token opow
+/* Lexer */
+%lex
+%%
+
+\s+                                     { /* skip whitespace */ }
+\/\/[^\n]*                              { /* skip comment */    }
+[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?     { return 'NUMBER';      }
+"**"                                    { return 'OPOW';        }
+[*/]                                    { return 'OPMU';        }
+[-+]                                    { return 'OPAD';        }
+<<EOF>>                                 { return 'EOF';         }
+.                                       { return 'INVALID';     }
+
+/lex
+
+/* Parser */
+%start expressions
+
+%token NUMBER
+%token OPAD
+%token OPMU
+%token OPOW
 
 %%
 
@@ -69,20 +137,27 @@ L
   : E eof                { $$ = $1; }
   ;
 
-E
-  : E opad T             { $$ = operate($2, $1, $3); }
-  | T                    { $$ = $1; }
+expression
+  : expression OPAD term
+    { $$ = operate($OPAD, $expression, $term); }
+  | term
+    { $$ = $term; }
   ;
 
-T
-  : T opmu R             { $$ = operate($2, $1, $3); }
-  | R                    { $$ = $1; }
+term
+  : term OPMU power
+    { $$ = operate($OPMU, $term, $power); }
+  | power
+    { $$ = $power; }
   ;
 
-R
-  : F opow R             { $$ = operate($2, $1, $3); }
-  | F                    { $$ = $1; }
+power
+  : factor OPOW power
+    { $$ = operate($OPOW, $factor, $power); }
+  | factor
+    { $$ = $factor; }
   ;
+%%
 ```
 
 ## 3 Añada los test correspondientes para comprobar que se respeta la precedencia y asociatividad con flotantes.
@@ -99,15 +174,15 @@ test('should handle floats with precedence', () => {
 
 ```js
 /* Lexer */
-"("     return 'LPAREN';
-")"     return 'RPAREN';
+"("     { return '('; }
+")"     { return ')'; }
 
 /* Parser */
-%token LPAREN RPAREN
-
-F
-  : number               { $$ = convert($1); }
-  | LPAREN E RPAREN      { $$ = $2; }
+factor
+  : NUMBER
+    { $$ = Number(yytext); }
+  | '(' expression ')'
+    { $$ = $expression; }
   ;
 ```
 

@@ -56,7 +56,6 @@ factor
   | '(' expression ')'
     { $$ = $expression; }
   ;
-
 %%
 
 function operate(op, left, right) {
