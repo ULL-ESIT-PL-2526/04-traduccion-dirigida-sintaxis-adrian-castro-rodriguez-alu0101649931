@@ -16,7 +16,6 @@
 /lex
 
 /* Parser */
-
 %start expressions
 
 %token NUMBER
@@ -26,9 +25,8 @@
 
 %%
 
-expressions
-  : expression EOF
-    { return $expression; }
+L
+  : E eof                { $$ = $1; }
   ;
 
 expression
