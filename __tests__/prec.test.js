@@ -39,4 +39,17 @@ describe('Parser Failing Tests', () => {
     expect(parse("100 - 50 + 25")).toBe(75);    // (100 - 50) + 25 = 75
     expect(parse("2 * 3 + 4 * 5")).toBe(26);    // (2 * 3) + (4 * 5) = 26
   });
+
+  test('should handle floats with precedence', () => {
+    expect(parse("2.5 + 3.5 * 2")).toBe(9.5);
+    expect(parse("10.0 - 4.0 / 2.0")).toBe(8.0);
+    expect(parse("2.0 ** 3.0 ** 2.0")).toBe(512.0);
+  });
+
+  test('should handle parentheses correctly', () => {
+    expect(parse("(2 + 3) * 4")).toBe(20);
+    expect(parse("2 * (3 + 4)")).toBe(14);
+    expect(parse("(2 + 3) * (4 + 1)")).toBe(25);
+    expect(parse("2 ** (3 ** 2)")).toBe(512);
+  });
 });
