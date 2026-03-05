@@ -1,6 +1,6 @@
 # Práctica 5 - Traducción Dirigida Sintaxis
 
-## 1. Partiendo de la gramática y las siguientes frases `4.0-2.0*3.0`, `2**3**2` y `7-4/2`:
+## 1. Partiendo de la gramática y las siguientes frases `4.0 - 2.0 * 3.0`, `2 ** 3 ** 2` y `7 - 4 / 2`:
 
 ### 1.1 Escriba la derivación para cada una de las frases.
 
