@@ -1,135 +1,123 @@
-# Práctica 4 - Traducción Dirigida Sintaxis
+# Práctica 5 - Traducción Dirigida Sintaxis
 
-## 1 Reponde las siguientes preguntas
+## Partiendo de la gramática y las siguientes frases `4.0-2.0*3.0`, `2**3**2` y `7-4/2`:
 
-### 1.1 Diferencia entre `/* skip whitespace */` y devolver un token
+### 1.1 Escriba la derivación para cada una de las frases.
 
-En el lexer:
+Frase 1: `4.0 - 2.0 * 3.0`
+
+```
+L
+E eof
+E op T eof
+E op T op T eof
+T op T op T eof
+number op T op T eof
+number op number op T eof
+number op number op number eof
+```
+
+Frase 2: `2 ** 3 ** 2`
+
+```
+L
+E eof
+E op T
+E op T op T
+T op T op T
+number op number op number
+```
+
+Frase 3: `7 - 4 / 2`
+
+```
+L
+E
+E op T
+E op T op T
+T op T op T
+number op number op number
+```
+
+### 1.2 Escriba el árbol de análisis sintáctico (parse tree) para cada una de las frases.
+
+Frase 1: `4.0 - 2.0 * 3.0`
+
+
+
+Frase 2: `2 ** 3 ** 2`
+
+
+
+Frase 3: `7 - 4 / 2`
+
+### 1.3 ¿En qué orden se evaluan las acciones semánticas para cada una de las frases?
+
+Es evaluación bottom-up: se convierten los números, se evalúa la operación más a la izquierda primero y luego se sigue reduciendo hacia arriba. Por tanto, todo es asociativo por la izquierda y no hay precedencia.
+
+## 2. Modifique la gramática del fichero grammar.jison de manera que se respete la precedencia y la asociatividad de los operadores matemáticos.
 
 ```js
-\s+ { /* skip whitespace */; }
-```
+%token number
+%token opad
+%token opmu
+%token opow
 
-Esta regla **reconoce espacios en blanco** (espacios, tabs, saltos de línea); no hace `return`, por lo tanto **no genera ningún token**; y el analizador simplemente los ignora.
-
-En cambio:
-
-```js
-[0-9]+ { return 'NUMBER'; }
-```
-
-Reconoce números, devuelve un token `NUMBER` y ese token pasa al parser para el análisis sintáctico.
-
-### 1.2 Secuencia de tokens para `123**45+@`
-
-| Lexema | Token   |
-| ------ | ------- |
-| 123    | NUMBER  |
-| **     | OP      |
-| 45     | NUMBER  |
-| +      | OP      |
-| @      | INVALID |
-| EOF    | EOF     |
-
-Secuencia: `NUMBER OP NUMBER OP INVALID EOF`
-
-### 1.3 ¿Por qué `"**"` debe aparecer antes que `[-+*/]`?
-
-Porque el lexer funciona por máxima coincidencia y por orden de aparición.
-
-Si `[-+*/]` apareciera antes:
-
-* El primer `*` sería reconocido como `OP`
-* El segundo `*` sería reconocido como otro `OP`
-
-En vez de reconocer `**` como un único operador. Por eso `"**"` debe ir antes, para que tenga prioridad.
-
-### 1.4 ¿Cuándo se devuelve EOF?
-
-```js
-<<EOF>> { return 'EOF'; }
-```
-
-Se devuelve cuando el lexer llega al final del archivo o no quedan más caracteres por analizar. Esto es necesario porque la gramática incluye:
-
-```
-L → E eof
-```
-
-El parser necesita saber cuándo termina la entrada.
-
-### 1.5 ¿Por qué existe la regla `.` que devuelve INVALID?
-
-```js
-. { return 'INVALID'; }
-```
-
-Esta regla sirve para paptura cualquier carácter no reconocido, evitar que el lexer se bloquee y permitir detectar errores léxicos.
-
-## 2. Ignorar comentarios `//`
-
-```js
-\/\/.[^\n]*           { /* skip comment */;    }
-```
-
-Lexer modificado:
-
-```js
-%lex
 %%
-\s+                   { /* skip whitespace */; }
-\/\/.[^\n]*           { /* skip comment */;    }
-[0-9]+                { return 'NUMBER';       }
-"**"                  { return 'OP';           }
-[-+*/]                { return 'OP';           }
-<<EOF>>               { return 'EOF';          }
-.                     { return 'INVALID';      }
-/lex
+
+L
+  : E eof                { $$ = $1; }
+  ;
+
+E
+  : E opad T             { $$ = operate($2, $1, $3); }
+  | T                    { $$ = $1; }
+  ;
+
+T
+  : T opmu R             { $$ = operate($2, $1, $3); }
+  | R                    { $$ = $1; }
+  ;
+
+R
+  : F opow R             { $$ = operate($2, $1, $3); }
+  | F                    { $$ = $1; }
+  ;
 ```
 
-## 3. Soporte para números en punto flotante
+## 3 Añada los test correspondientes para comprobar que se respeta la precedencia y asociatividad con flotantes.
 
 ```js
-[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?
+test('should handle floats with precedence', () => {
+  expect(parse("2.5 + 3.5 * 2")).toBe(9.5);
+  expect(parse("10.0 - 4.0 / 2.0")).toBe(8.0);
+  expect(parse("2.0 ** 3.0 ** 2.0")).toBe(512.0);
+});
 ```
 
-Lexer final:
+## 4. Modifique el programa Jison para que se reconozcan expresiones entre paréntesis.
 
 ```js
-%lex
-%%
-\s+                                     { /* skip whitespace */; }
-\/\/.*                                  { /* skip comment */;    }
-[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?     { return 'NUMBER';       }
-"**"                                    { return 'OP';           }
-[-+*/]                                  { return 'OP';           }
-<<EOF>>                                 { return 'EOF';          }
-.                                       { return 'INVALID';      }
-/lex
+/* Lexer */
+"("     return 'LPAREN';
+")"     return 'RPAREN';
+
+/* Parser */
+%token LPAREN RPAREN
+
+F
+  : number               { $$ = convert($1); }
+  | LPAREN E RPAREN      { $$ = $2; }
+  ;
 ```
 
-## 4. Añadir pruebas para las modificaciones (Jest)
+## 5. Añada los test correspondientes para las expresiones entre paréntesis.
 
 ```js
-describe('Modification tests', () => {
-  test("ignore comments", () => {
-    expect(parse("2+3 // comment")).toBe(5);
-  });
-
-  test("simple floating point", () => {
-    expect(parse("2.5+2.5")).toBe(5);
-  });
-
-  test("scientific notation e-", () => {
-    expect(parse("2.35e-3")).toBeCloseTo(0.00235);
-  });
-
-  test("scientific notation e+", () => {
-    expect(parse("2.35e+3")).toBeCloseTo(2350);
-  });
-
-  test("scientific notation E-", () => {
-    expect(parser.parse("2.35E-3")).toBeCloseTo(0.00235);
-  });
-})
+test('should handle parentheses correctly', () => {
+  expect(parse("(2 + 3) * 4")).toBe(20);
+  expect(parse("2 * (3 + 4)")).toBe(14);
+  expect(parse("(2 + 3) * (4 + 1)")).toBe(25);
+  expect(parse("2 ** (3 ** 2)")).toBe(512);
+});
 ```
